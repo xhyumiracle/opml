@@ -9,15 +9,14 @@ import (
 	"mlgo/ml"
 )
 
-
-func LLAMA(nodeID int, modelFile string, prompt string) ([]byte, int, error){
+func LLAMA(nodeID int, modelFile string, prompt string) ([]byte, int, error) {
 	if modelFile == "" {
 		modelFile = "./mlgo/examples/llama/models/llama-7b-fp32.bin"
 	}
 	if prompt == "" {
 		prompt = "How to combine AI and blockchain?"
 	}
-	
+
 	threadCount := 32
 	ctx, err := llama.LoadModel(modelFile, true)
 	fmt.Println("Load Model Finish")
@@ -67,10 +66,10 @@ func MNIST_Input(dataFile string, show bool) ([]float32, error) {
 
 	// render the digit in ASCII
 	var c string
-	for row := 0; row < 28; row++{
+	for row := 0; row < 28; row++ {
 		for col := 0; col < 28; col++ {
-			digits[row*28 + col] = float32(buf[row*28 + col])
-			if buf[row*28 + col] > 230 {
+			digits[row*28+col] = float32(buf[row*28+col])
+			if buf[row*28+col] > 230 {
 				c += "*"
 			} else {
 				c += "_"
@@ -81,7 +80,6 @@ func MNIST_Input(dataFile string, show bool) ([]float32, error) {
 	if show {
 		fmt.Println(c)
 	}
-
 
 	return digits, nil
 }

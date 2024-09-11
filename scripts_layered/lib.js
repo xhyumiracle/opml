@@ -3,7 +3,7 @@ const rlp = require('rlp')
 const child_process = require("child_process")
 
 const basedir = process.env.BASEDIR == undefined ? "/tmp/cannon" : process.env.BASEDIR
-const programPath = process.env.PROGRAM_PATH 
+const programPath = process.env.PROGRAM_PATH
 const modelPath = process.env.MODEL_PATH
 const modelName = process.env.MODEL_NAME
 const dataPath = process.env.DATA_PATH
@@ -14,14 +14,14 @@ async function deploy() {
   const m = await MIPS.deploy()
   const mm = await ethers.getContractAt("MIPSMemory", await m.m())
 
-  let startTrie = JSON.parse(fs.readFileSync(basedir+"/checkpoint/0_golden.json"))
+  let startTrie = JSON.parse(fs.readFileSync(basedir + "/checkpoint/0_golden.json"))
   let goldenRoot = startTrie["root"]
   console.log("goldenRoot is", goldenRoot)
 
   const Challenge = await ethers.getContractFactory("LayeredChallenge")
   const c = await Challenge.deploy(m.address, goldenRoot)
 
-  return [c,m,mm]
+  return [c, m, mm]
 }
 
 function getBlockRlp(block) {
@@ -56,11 +56,11 @@ function getBlockRlp(block) {
 }
 
 async function deployed() {
-  let addresses = JSON.parse(fs.readFileSync(basedir+"/deployed.json"))
+  let addresses = JSON.parse(fs.readFileSync(basedir + "/deployed.json"))
   const c = await ethers.getContractAt("LayeredChallenge", addresses["LayeredChallenge"])
   const m = await ethers.getContractAt("MIPS", addresses["MIPS"])
   const mm = await ethers.getContractAt("MIPSMemory", addresses["MIPSMemory"])
-  return [c,m,mm]
+  return [c, m, mm]
 }
 
 class MissingHashError extends Error {
@@ -79,11 +79,11 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
       // needs something like initiateChallengeWithTrieNodesj
       let calldata = c.interface.encodeFunctionData("callWithTrieNodes", [caddress, cdat, nodes])
       ret = await ethers.provider.call({
-        to:c.address,
-        data:calldata
+        to: c.address,
+        data: calldata
       });
       break
-    } catch(e) {
+    } catch (e) {
       let missing = e.toString().split("'")[1]
       if (missing == undefined) {
         // other kind of error from HTTPProvider
@@ -91,9 +91,9 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
       }
       if (missing !== undefined && missing.length == 64) {
         console.log("requested node", missing)
-        let node = preimages["0x"+missing]
+        let node = preimages["0x" + missing]
         if (node === undefined) {
-          throw("node not found")
+          throw ("node not found")
         }
         const bin = Uint8Array.from(Buffer.from(node, 'base64').toString('binary'), c => c.charCodeAt(0))
         nodes.push(bin)
@@ -113,29 +113,30 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
 }
 
 function getTrieAtStep(step, nodeID, isLastLayer) {
-  let fn = basedir+"/checkpoint"+"/checkpoint_"+nodeID.toString()+"_"+step.toString()+".json"
+  let fn = basedir + "/checkpoint" + "/checkpoint_" + nodeID.toString() + "_" + step.toString() + ".json"
   if (step == -1) {
-    fn = basedir+"/checkpoint"+"/checkpoint_"+nodeID.toString()+"_final"+".json"
+    fn = basedir + "/checkpoint" + "/checkpoint_" + nodeID.toString() + "_final" + ".json"
   }
   if (!isLastLayer) {
-    fn = basedir+"/checkpoint"+"/"+nodeID.toString()+"_golden"+".json"
+    fn = basedir + "/checkpoint" + "/" + nodeID.toString() + "_golden" + ".json"
   }
 
   if (!fs.existsSync(fn)) {
     // console.log("running mipsevm")
     console.log("running program: ", programPath)
-    const inputPath = basedir+"/data/node_" + nodeID.toString()
-    const lastLayer = isLastLayer ?  " --lastLayer" : " "
-    const command = "mlvm/mlvm" + lastLayer + " --target="+step.toString() + " --program="+programPath + " --modelName="+modelName + " --data="+inputPath + " --nodeID="+nodeID.toString() + " --model="+modelPath + " --prompt="+prompt
+    const inputPath = basedir + "/data/node_" + nodeID.toString()
+    const lastLayer = isLastLayer ? " --lastLayer" : " "
+    const command = "mlvm/mlvm" + lastLayer + " --target=" + step.toString() + " --program=" + programPath + " --modelName=" + modelName + " --data=" + inputPath + " --nodeID=" + nodeID.toString() + " --model=" + modelPath + " --prompt=" + prompt
     console.log(command)
-    child_process.execSync(command, {stdio: 'inherit'})
+    child_process.execSync(command, { stdio: 'inherit' })
+
   }
 
   return JSON.parse(fs.readFileSync(fn))
 }
 
 
-async function writeMemory(mm, root, addr, data, bytes32=false) {
+async function writeMemory(mm, root, addr, data, bytes32 = false) {
   if (bytes32) {
     ret = await mm.WriteBytes32WithReceipt(root, addr, data)
   } else {

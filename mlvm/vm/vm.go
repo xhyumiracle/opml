@@ -28,10 +28,10 @@ func WriteCheckpointWithNodeID(ram map[uint32](uint32), fn string, step int, nod
 
 // memory layout in MIPS
 const (
-	INPUT_ADDR = 0x31000000
+	INPUT_ADDR  = 0x31000000
 	OUTPUT_ADDR = 0x32000000
-	MODEL_ADDR = 0x33000000
-	MAGIC_ADDR = 0x30000800
+	MODEL_ADDR  = 0x33000000
+	MAGIC_ADDR  = 0x30000800
 )
 
 const (
@@ -44,15 +44,15 @@ const (
 )
 
 func IntToBytes(n int) []byte {
-    x := int32(n)
-    bytesBuffer := bytes.NewBuffer([]byte{})
-	if READ_FROM_BIDENDIAN{
+	x := int32(n)
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	if READ_FROM_BIDENDIAN {
 		binary.Write(bytesBuffer, binary.BigEndian, x)
 	} else {
 		binary.Write(bytesBuffer, binary.LittleEndian, x)
 	}
-    
-    return bytesBuffer.Bytes()
+
+	return bytesBuffer.Bytes()
 }
 
 func LoadModel(mu uc.Unicorn, file string, ram map[uint32](uint32)) {
@@ -66,7 +66,7 @@ func LoadModel(mu uc.Unicorn, file string, ram map[uint32](uint32)) {
 	rawSize := IntToBytes(modelSize)
 	fmt.Println("rawSize: ", rawSize)
 	LoadBytesToUnicorn(mu, rawSize, ram, MODEL_ADDR)
-	LoadBytesToUnicorn(mu, modelBytes, ram, MODEL_ADDR + 4)
+	LoadBytesToUnicorn(mu, modelBytes, ram, MODEL_ADDR+4)
 }
 
 func LoadInputData(mu uc.Unicorn, file string, ram map[uint32](uint32)) error {
@@ -76,7 +76,7 @@ func LoadInputData(mu uc.Unicorn, file string, ram map[uint32](uint32)) error {
 		fmt.Println(err)
 		return err
 	}
-	if len(buf) >= 10 * 1024 * 1024 {
+	if len(buf) >= 10*1024*1024 {
 		fmt.Println("data too large")
 		buf = buf[:1024]
 		// return errors.New("data too large")
@@ -84,26 +84,26 @@ func LoadInputData(mu uc.Unicorn, file string, ram map[uint32](uint32)) error {
 	//buf is the data
 	inputSize := len(buf)
 	LoadBytesToUnicorn(mu, IntToBytes(inputSize), ram, INPUT_ADDR)
-	LoadBytesToUnicorn(mu, buf, ram, INPUT_ADDR + 4)
-	
+	LoadBytesToUnicorn(mu, buf, ram, INPUT_ADDR+4)
+
 	return nil
 }
 
 type Params struct {
-	Target int
-	ProgramPath string
-	ModelPath string
-	InputPath string
-	Basedir string
+	Target       int
+	ProgramPath  string
+	ModelPath    string
+	InputPath    string
+	Basedir      string
 	OutputGolden bool
 
-	CurLayer int
+	CurLayer  int
 	LastLayer bool
 	ModelName string
-	NodeID int
+	NodeID    int
 
 	MIPSVMCompatible bool
-	Prompt string
+	Prompt           string
 }
 
 func ParseParams() *Params {
@@ -137,24 +137,24 @@ func ParseParams() *Params {
 	flag.IntVar(&curLayer, "curLayer", 0, "The current layer")
 	flag.StringVar(&modelName, "modelName", "MNIST", "run MNIST or LLAMA")
 	flag.IntVar(&nodeID, "nodeID", 0, "The current nodeID")
-	
+
 	flag.BoolVar(&mipsVMCompatible, "mipsVMCompatible", false, "compatible for MIPS VM")
 	flag.StringVar(&prompt, "prompt", "How to combine AI and blockchain?", "prompt for LLaMA")
 	flag.Parse()
 
 	params := &Params{
-		Target: target,
-		ProgramPath: programPath,
-		ModelPath: modelPath,
-		InputPath: inputPath,
-		Basedir: basedir,
-		OutputGolden: outputGolden,
-		CurLayer: curLayer,
-		LastLayer: lastLayer,
-		ModelName: modelName,
-		NodeID: nodeID,
+		Target:           target,
+		ProgramPath:      programPath,
+		ModelPath:        modelPath,
+		InputPath:        inputPath,
+		Basedir:          basedir,
+		OutputGolden:     outputGolden,
+		CurLayer:         curLayer,
+		LastLayer:        lastLayer,
+		ModelName:        modelName,
+		NodeID:           nodeID,
 		MIPSVMCompatible: mipsVMCompatible,
-		Prompt: prompt,
+		Prompt:           prompt,
 	}
 
 	return params
@@ -185,17 +185,17 @@ func RunWithParams(params *Params) {
 
 	if !lastLayer {
 		id := target
-		nodeFile, nodeCount, err := LayerRun(basedir + "/data", id, modelName, params)
+		nodeFile, nodeCount, err := LayerRun(basedir+"/data", id, modelName, params)
 		if err != nil {
 			fmt.Println("layer run error: ", err)
 			return
 		}
-		MIPSRun(basedir + "/checkpoint", 0, id, programPath, nodeFile, true, nodeCount)
+		//xhyu: get the state at the beginning of this node id by target step = 0
+		MIPSRun(basedir+"/checkpoint", 0, id, programPath, nodeFile, true, nodeCount)
 	} else {
 		// the lastLayer
-		MIPSRun(basedir + "/checkpoint", target, nodeID, programPath, inputPath, outputGolden, 0)
+		MIPSRun(basedir+"/checkpoint", target, nodeID, programPath, inputPath, outputGolden, 0)
 	}
-	
 
 	// step 2 (optional), validate each 1 million chunk in EVM
 
@@ -211,6 +211,7 @@ func LayerRun(basedir string, nodeID int, modelName string, params *Params) (str
 	var nodeCount int
 
 	if modelName == "MNIST" {
+		fmt.Println("******* params.InputPath ****************", params.InputPath)
 		envBytes, nodeCount, err = MNIST(nodeID, params.ModelPath, params.InputPath)
 	} else { // if modelName == "LLAMA"
 		envBytes, nodeCount, err = LLAMA(nodeID, params.ModelPath, params.Prompt)
@@ -222,6 +223,7 @@ func LayerRun(basedir string, nodeID int, modelName string, params *Params) (str
 	}
 
 	fileName := fmt.Sprintf("%s/node_%d", basedir, nodeID)
+	fmt.Println("--------- in LayerRun, save data to:", fileName)
 	err = saveDataToFile(envBytes, fileName)
 
 	if err != nil {
@@ -285,18 +287,17 @@ func MIPSRun(basedir string, target int, nodeID int, programPath string, inputPa
 	if inputPath != "" {
 		LoadInputData(mu, inputPath, ram)
 	}
-	
+
 	if outputGolden {
 		WriteCheckpointWithNodeID(ram, fmt.Sprintf("%s/%d_golden.json", basedir, nodeID), -1, nodeID, nodeCount)
 		fmt.Println("Writing golden snapshot and exiting early without execution")
-		return 
+		return
 	}
 
 	// do not need if we just run pure computation task
 	// LoadMappedFileUnicorn(mu, fmt.Sprintf("%s/input", basedir), ram, 0x30000000)
 
 	mu.Start(0, 0x5ead0004)
-
 
 	if reachFinalState {
 		fmt.Printf("reach the final state, total step: %d, target: %d\n", lastStep, target)
@@ -350,12 +351,11 @@ func MIPSRunCompatible(basedir string, target int, programPath string, modelPath
 		LoadInputData(mu, inputPath, ram)
 	}
 	LoadModel(mu, modelPath, ram)
-	
-	
+
 	if outputGolden {
 		WriteCheckpoint(ram, fmt.Sprintf("%s/golden.json", basedir), -1)
 		fmt.Println("Writing golden snapshot and exiting early without execution")
-		return 
+		return
 	}
 
 	// do not need if we just run pure computation task
