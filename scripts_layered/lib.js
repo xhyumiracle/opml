@@ -127,8 +127,8 @@ function getTrieAtStep(step, nodeID, isLastLayer) {
     const inputPath = isLastLayer ? basedir + "/data/node_" + nodeID.toString() : dataPath
     const lastLayer = isLastLayer ? " --lastLayer" : " "
     let command = "mlvm/mlvm" + lastLayer + " --target=" + step.toString() + " --program=" + programPath + " --modelName=" + modelName + " --data=" + inputPath + " --nodeID=" + nodeID.toString() + " --model=" + modelPath + " --prompt=" + prompt
-    command = '/usr/bin/time -v ' + command
-    console.log(command)
+    command = '/usr/bin/time -v ' + command + ' 2>&1'
+    console.log("command:", command)
     child_process.execSync(command, { stdio: 'inherit' })
 
   }

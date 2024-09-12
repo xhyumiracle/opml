@@ -7,3 +7,4 @@ venv
 *.log
 
 mlvm/mlvm
+logs/

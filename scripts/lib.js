@@ -3,7 +3,7 @@ const rlp = require('rlp')
 const child_process = require("child_process")
 
 const basedir = process.env.BASEDIR == undefined ? "/tmp/cannon" : process.env.BASEDIR
-const programPath = process.env.PROGRAM_PATH 
+const programPath = process.env.PROGRAM_PATH
 const modelPath = process.env.MODEL_PATH
 const dataPath = process.env.DATA_PATH
 
@@ -12,14 +12,14 @@ async function deploy() {
   const m = await MIPS.deploy()
   const mm = await ethers.getContractAt("MIPSMemory", await m.m())
 
-  let startTrie = JSON.parse(fs.readFileSync(basedir+"/golden.json"))
+  let startTrie = JSON.parse(fs.readFileSync(basedir + "/golden.json"))
   let goldenRoot = startTrie["root"]
   console.log("goldenRoot is", goldenRoot)
 
   const Challenge = await ethers.getContractFactory("Challenge")
   const c = await Challenge.deploy(m.address, goldenRoot)
 
-  return [c,m,mm]
+  return [c, m, mm]
 }
 
 function getBlockRlp(block) {
@@ -54,11 +54,11 @@ function getBlockRlp(block) {
 }
 
 async function deployed() {
-  let addresses = JSON.parse(fs.readFileSync(basedir+"/deployed.json"))
+  let addresses = JSON.parse(fs.readFileSync(basedir + "/deployed.json"))
   const c = await ethers.getContractAt("Challenge", addresses["Challenge"])
   const m = await ethers.getContractAt("MIPS", addresses["MIPS"])
   const mm = await ethers.getContractAt("MIPSMemory", addresses["MIPSMemory"])
-  return [c,m,mm]
+  return [c, m, mm]
 }
 
 class MissingHashError extends Error {
@@ -77,11 +77,11 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
       // needs something like initiateChallengeWithTrieNodesj
       let calldata = c.interface.encodeFunctionData("callWithTrieNodes", [caddress, cdat, nodes])
       ret = await ethers.provider.call({
-        to:c.address,
-        data:calldata
+        to: c.address,
+        data: calldata
       });
       break
-    } catch(e) {
+    } catch (e) {
       let missing = e.toString().split("'")[1]
       if (missing == undefined) {
         // other kind of error from HTTPProvider
@@ -89,9 +89,9 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
       }
       if (missing !== undefined && missing.length == 64) {
         console.log("requested node", missing)
-        let node = preimages["0x"+missing]
+        let node = preimages["0x" + missing]
         if (node === undefined) {
-          throw("node not found")
+          throw ("node not found")
         }
         const bin = Uint8Array.from(Buffer.from(node, 'base64').toString('binary'), c => c.charCodeAt(0))
         nodes.push(bin)
@@ -111,19 +111,22 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
 }
 
 function getTrieAtStep(step) {
-  const fn = basedir+"/checkpoint_"+step.toString()+".json"
+  const fn = basedir + "/checkpoint_" + step.toString() + ".json"
 
   if (!fs.existsSync(fn)) {
     // console.log("running mipsevm")
     console.log("running program: ", programPath)
-    child_process.execSync("mlvm/mlvm --mipsVMCompatible" + " --target="+step.toString() + " --program="+programPath + " --model="+modelPath + " --data="+dataPath, {stdio: 'inherit'})
+    let command = "mlvm/mlvm --mipsVMCompatible" + " --target=" + step.toString() + " --program=" + programPath + " --model=" + modelPath + " --data=" + dataPath
+    command = '/usr/bin/time -v ' + command + ' 2>&1'
+    console.log("command:", command)
+    child_process.execSync(command, { stdio: 'inherit' })
   }
 
   return JSON.parse(fs.readFileSync(fn))
 }
 
 
-async function writeMemory(mm, root, addr, data, bytes32=false) {
+async function writeMemory(mm, root, addr, data, bytes32 = false) {
   if (bytes32) {
     ret = await mm.WriteBytes32WithReceipt(root, addr, data)
   } else {
