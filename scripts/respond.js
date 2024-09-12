@@ -11,7 +11,7 @@ async function main() {
   console.log("isChallenger: ", isChallenger)
 
   let step = (await c.getStepNumber(challengeId)).toNumber()
-  console.log("searching step", step)
+  console.log("searching step:", step)
 
   if (!(await c.isSearching(challengeId))) {
     console.log("search is done")
