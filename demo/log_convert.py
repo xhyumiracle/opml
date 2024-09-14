@@ -1,10 +1,15 @@
 import csv
 import re
 import os
+# Convert m:ss format to seconds
+def time_to_seconds(time_str):
+    minutes, seconds = map(float, time_str.split(':'))
+    return minutes * 60 + seconds
 
 def convert_log(log_file, output_file):
     # Regular expressions to match patterns in the log
     user_time_pattern = re.compile(r'User time \(seconds\): (\d+\.\d+)')
+    elapsed_time_pattern = re.compile(r'Elapsed \(wall clock\) time \(h:mm:ss or m:ss\): (\d+:\d+\.\d+)')
     system_time_pattern = re.compile(r'System time \(seconds\): (\d+\.\d+)')
     max_resident_set_pattern = re.compile(r'Maximum resident set size \(kbytes\): (\d+)')
     step_pattern = re.compile(r'--- STEP (\d+)')
@@ -17,15 +22,15 @@ def convert_log(log_file, output_file):
         # Write the header row
         csv_writer.writerow([
             'STEP number', 'layer num', 'searching step',
-            'Challenger 0 User time (seconds)', 'Challenger 0 System time (seconds)', 'Challenger 0 Maximum resident set size (kb)',
-            'Challenger 1 User time (seconds)', 'Challenger 1 System time (seconds)', 'Challenger 1 Maximum resident set size (kb)'
+            'Challenger 0 User time (seconds)', 'Challenger 0 System time (seconds)', 'Challenger 0 Elapsed time', 'Challenger 0 Maximum resident set size (kb)',
+            'Challenger 1 User time (seconds)', 'Challenger 1 System time (seconds)', 'Challenger 1 Elapsed time', 'Challenger 1 Maximum resident set size (kb)'
         ])
 
         current_step = None
         layer_num = None
         searching_step = None
-        challenger0 = {'user_time': None, 'system_time': None, 'max_resident_set': None}
-        challenger1 = {'user_time': None, 'system_time': None, 'max_resident_set': None}
+        challenger0 = {'user_time': None, 'system_time': None, 'elapsed_time': None, 'max_resident_set': None}
+        challenger1 = {'user_time': None, 'system_time': None, 'elapsed_time': None, 'max_resident_set': None}
 
         for line in f:
             line=line.strip()
@@ -35,13 +40,13 @@ def convert_log(log_file, output_file):
                     # Write the row for the previous step
                     csv_writer.writerow([
                         current_step, layer_num, searching_step,
-                        challenger0['user_time'], challenger0['system_time'], challenger0['max_resident_set'],
-                        challenger1['user_time'], challenger1['system_time'], challenger1['max_resident_set']
+                        challenger0['user_time'], challenger0['system_time'], challenger0['elapsed_time'], challenger0['max_resident_set'],
+                        challenger1['user_time'], challenger1['system_time'], challenger1['elapsed_time'], challenger1['max_resident_set']
                     ])
                 # Reset for the next step
                 current_step = step_match.group(1)
-                challenger0 = {'user_time': None, 'system_time': None, 'max_resident_set': None}
-                challenger1 = {'user_time': None, 'system_time': None, 'max_resident_set': None}
+                challenger0 = {'user_time': None, 'system_time': None, 'elapsed_time': None, 'max_resident_set': None}
+                challenger1 = {'user_time': None, 'system_time': None, 'elapsed_time': None, 'max_resident_set': None}
                 continue
             
             if 'current layer:' in line:
@@ -60,12 +65,15 @@ def convert_log(log_file, output_file):
             # Match the performance data
             user_time_match = user_time_pattern.match(line)
             system_time_match = system_time_pattern.match(line)
+            elapsed_time_match = elapsed_time_pattern.match(line)
             max_resident_set_match = max_resident_set_pattern.match(line)
 
             if user_time_match:
                 challenger['user_time'] = user_time_match.group(1)
             elif system_time_match:
                 challenger['system_time'] = system_time_match.group(1)
+            elif elapsed_time_match:
+                challenger['elapsed_time'] = time_to_seconds(elapsed_time_match.group(1))
             elif max_resident_set_match:
                 challenger['max_resident_set'] = max_resident_set_match.group(1)
 
@@ -73,8 +81,8 @@ def convert_log(log_file, output_file):
         if current_step is not None:
             csv_writer.writerow([
                 current_step, layer_num, searching_step,
-                challenger0['user_time'], challenger0['system_time'], challenger0['max_resident_set'],
-                challenger1['user_time'], challenger1['system_time'], challenger1['max_resident_set']
+                challenger0['user_time'], challenger0['system_time'], challenger0['elapsed_time'], challenger0['max_resident_set'],
+                challenger1['user_time'], challenger1['system_time'], challenger1['elapsed_time'], challenger1['max_resident_set']
             ])
 
     print(f"Converted {log_file} to {output_file}")
