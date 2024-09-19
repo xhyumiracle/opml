@@ -25,8 +25,8 @@ async function main() {
     nodeID = step
     if (!isSearching) {
       console.log("enter the next layer")
-      let startTrie = getTrieAtStep(step, nodeID, false)
-      let finalTrie = getTrieAtStep(-1, nodeID, true)
+      let startTrie = getTrieAtStep(step, nodeID, false, " --outputMode=1 ") // --outputMode=0 for full, =1 for benchmark
+      let finalTrie = getTrieAtStep(-1, nodeID, true, " --outputMode=1 ", true)
       console.log(challengeId, startTrie['root'], finalTrie['root'], finalTrie['step'])
       ret = await c.toNextLayer(challengeId, startTrie['root'], finalTrie['root'], finalTrie['step'])
       let receipt = await ret.wait()
@@ -40,7 +40,7 @@ async function main() {
         return
       }
       console.log("isProposing", isProposing)
-      let thisTrie = getTrieAtStep(step, nodeID, false)
+      let thisTrie = getTrieAtStep(step, nodeID, false, " --outputMode=1 ", true)
       const root = thisTrie['root']
       console.log("new root", root)
 
@@ -64,21 +64,22 @@ async function main() {
 
     // see if it's proposed or not
     const proposed = await c.getProposedState(challengeId)
+    console.log("testing: proposed =", proposed)
     const isProposing = proposed == "0x0000000000000000000000000000000000000000000000000000000000000000"
     if (isProposing != isChallenger) {
-        console.log("bad challenger state")
-        return
+      console.log("bad challenger state")
+      return
     }
     console.log("isProposing", isProposing)
-    let thisTrie = getTrieAtStep(step, nodeID, true)
+    let thisTrie = getTrieAtStep(step, nodeID, true, " --outputMode=1 ", true)
     const root = thisTrie['root']
     console.log("new root", root)
 
     let ret
     if (isProposing) {
-        ret = await c.proposeState(challengeId, root)
+      ret = await c.proposeState(challengeId, root)
     } else {
-        ret = await c.respondState(challengeId, root)
+      ret = await c.respondState(challengeId, root)
     }
     let receipt = await ret.wait()
     console.log("done", receipt.blockNumber)

@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/fatih/color"
 	uc "github.com/unicorn-engine/unicorn/bindings/go/unicorn"
+
+	"mlvm/timer"
 )
 
 // SHOULD BE GO BUILTIN
@@ -95,7 +97,7 @@ func GetHookedUnicorn(root string, ram map[uint32](uint32), callback func(int, u
 				binary.BigEndian.PutUint32(tmp, uint32(len(value)))
 				mu.MemWrite(0x31000000, tmp)
 				mu.MemWrite(0x31000004, value)
-	
+
 				WriteRam(ram, 0x31000000, uint32(len(value)))
 				value = append(value, 0, 0, 0)
 				for i := uint32(0); i < ram[0x31000000]; i += 4 {
@@ -171,8 +173,10 @@ func GetHookedUnicorn(root string, ram map[uint32](uint32), callback func(int, u
 }
 
 func LoadMappedFileUnicorn(mu uc.Unicorn, fn string, ram map[uint32](uint32), base uint32) {
+	timer.StartTimer("readmappedfile")
 	dat, err := ioutil.ReadFile(fn)
 	check(err)
+	timer.StopTimer("readmappedfile")
 	LoadData(dat, ram, base)
 	mu.MemWrite(uint64(base), dat)
 }
@@ -206,15 +210,13 @@ func RunUnicorn(fn string, ram map[uint32](uint32), checkIO bool, callback func(
 		if checkIO {
 			LoadData(inputs[0:0xc0], ram, 0x30000000)
 		}
-	
+
 		mu.Start(0, 0x5ead0004)
 	} else {
 		// load into ram
 		LoadData(dat, ram, 0)
 		mu.Start(0, 0x5ead0004)
 	}
-
-
 
 	if checkIO {
 		outputs, err := ioutil.ReadFile(fmt.Sprintf("%s/output", root))

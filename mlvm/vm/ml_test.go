@@ -14,15 +14,15 @@ func TestMNIST(t *testing.T) {
 	model, err := mnist.LoadModel(modelFile)
 	if err != nil {
 		fmt.Println("Load model error: ", err)
-		return 
+		return
 	}
 	// load input
 	input, err := MNIST_Input("../../mlgo/examples/mnist/models/mnist/input_7", true)
 	if err != nil {
 		fmt.Println("Load input data error: ", err)
-		return 
+		return
 	}
-	graph, _ := mnist.ExpandGraph(model, threadCount, input)
+	graph, _, _ := mnist.ExpandGraph(model, threadCount, input)
 	fmt.Println("graph.nodeNum: ", graph.NodesCount)
 }
 
@@ -34,7 +34,7 @@ func TestLLAMA(t *testing.T) {
 	fmt.Println("Load Model Finish")
 	if err != nil {
 		fmt.Println("load model error: ", err)
-		return 
+		return
 	}
 	embd := ml.Tokenize(ctx.Vocab, prompt, true)
 	graph, _, _ := llama.ExpandGraph(ctx, embd, uint32(len(embd)), 0, threadCount)

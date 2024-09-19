@@ -21,19 +21,33 @@ var Preimages = make(map[common.Hash][]byte)
 type Jtree struct {
 	Root      common.Hash            `json:"root"`
 	Step      int                    `json:"step"`
-	NodeID	  int                    `json:"nodeid"`
+	NodeID    int                    `json:"nodeid"`
 	NodeCount int                    `json:"nodeCount"`
 	Preimages map[common.Hash][]byte `json:"preimages"`
 }
 
-func TrieToJson(root common.Hash, step int) []byte {
-	b, err := json.Marshal(Jtree{Preimages: Preimages, Step: step, Root: root})
+func TrieToJson(root common.Hash, step int, writePreimages bool) []byte {
+	var jt Jtree
+	if writePreimages {
+		jt = Jtree{Preimages: Preimages, Step: step, Root: root}
+	} else {
+		jt = Jtree{Step: step, Root: root}
+	}
+
+	b, err := json.Marshal(jt)
 	check(err)
 	return b
 }
 
-func TrieToJsonWithNodeID(root common.Hash, step int, nodeID int, nodeCount int) []byte {
-	b, err := json.Marshal(Jtree{Preimages: Preimages, Step: step, NodeID: nodeID, NodeCount: nodeCount, Root: root})
+func TrieToJsonWithNodeID(root common.Hash, step int, nodeID int, nodeCount int, writePreimages bool) []byte {
+	var jt Jtree
+	if writePreimages {
+		jt = Jtree{Preimages: Preimages, Step: step, NodeID: nodeID, NodeCount: nodeCount, Root: root}
+	} else {
+		jt = Jtree{Step: step, NodeID: nodeID, NodeCount: nodeCount, Root: root}
+	}
+
+	b, err := json.Marshal(jt)
 	check(err)
 	return b
 }

@@ -112,7 +112,8 @@ async function getTrieNodesForCall(c, caddress, cdat, preimages) {
   return nodes
 }
 
-function getTrieAtStep(step, nodeID, isLastLayer) {
+
+function getTrieAtStep(step, nodeID, isLastLayer, paramStr = "", isBench = false, asyncCb = null, logFile = null) {
   let fn = basedir + "/checkpoint" + "/checkpoint_" + nodeID.toString() + "_" + step.toString() + ".json"
   if (step == -1) {
     fn = basedir + "/checkpoint" + "/checkpoint_" + nodeID.toString() + "_final" + ".json"
@@ -126,11 +127,19 @@ function getTrieAtStep(step, nodeID, isLastLayer) {
     console.log("running program: ", programPath)
     const inputPath = isLastLayer ? basedir + "/data/node_" + nodeID.toString() : dataPath
     const lastLayer = isLastLayer ? " --lastLayer" : " "
-    let command = "mlvm/mlvm" + lastLayer + " --target=" + step.toString() + " --program=" + programPath + " --modelName=" + modelName + " --data=" + inputPath + " --nodeID=" + nodeID.toString() + " --model=" + modelPath + " --prompt=" + prompt
-    command = '/usr/bin/time -v ' + command + ' 2>&1'
+    let command = "mlvm/mlvm" + lastLayer + " --target=" + step.toString() + " --program=" + programPath + " --modelName=" + modelName + " --data=" + inputPath + " --nodeID=" + nodeID.toString() + " --model=" + modelPath + " --prompt=\"" + prompt + "\""
+    command = command + ' ' + paramStr
+    if (isBench) command = '/usr/bin/time -v ' + command + ' --outputBenchmark 2>&1'
+    if (logFile) command = command + ' | tee -a ' + logFile
     console.log("command:", command)
-    child_process.execSync(command, { stdio: 'inherit' })
-
+    if (asyncCb) {
+      child_process.exec(command, (error, stdout, stderr) => {
+        asyncCb(error, stdout, stderr, JSON.parse(fs.readFileSync(fn)))
+      })
+      return // return early, file read through callback func
+    } else {
+      child_process.execSync(command, { stdio: 'inherit' })
+    }
   }
 
   return JSON.parse(fs.readFileSync(fn))
